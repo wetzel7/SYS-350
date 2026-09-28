@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS test (id INT PRIMARY KEY AUTO_INCREMENT, message VARCHAR(255));
+INSERT INTO test (message) VALUES ('Hello from MySQL!');
