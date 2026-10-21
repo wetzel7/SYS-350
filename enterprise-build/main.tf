@@ -1,15 +1,15 @@
 terraform {
   required_providers {
     docker = {
-      source = "kreuzwerker/docker"
+      source  = "kreuzwerker/docker"
       version = "~> 3.0"
     }
     libvirt = {
-      source = "dmacvicar/libvirt"
+      source  = "dmacvicar/libvirt"
       version = "~> 0.9"
     }
     tls = {
-      source = "hashicorp/tls"
+      source  = "hashicorp/tls"
       version = "~> 4.0"
     }
   }
@@ -28,7 +28,7 @@ variable "student_name" {
   description = "Your student identifier (e.g., jsmith, lsavage, ebailey)"
 
   validation {
-    condition    =can(regex("^[a-z]{2,10}$", var.student_name))
+    condition     = can(regex("^[a-z]{2,10}$", var.student_name))
     error_message = "Student name must be 2-10 lower case letters."
   }
 }
@@ -42,7 +42,8 @@ variable "services" {
       internal = number
       external = number
     })), [])
-    env = optional(map(string), {})
+    env     = optional(map(string), {})
+    volumes = optional(list(object({ container_path = string })), [])
   }))
   default = {}
 }
@@ -189,6 +190,13 @@ resource "docker_container" "service" {
     }
   }
 
+  dynamic "volumes" {
+    for_each = try(each.value.volumes, [])
+    content {
+      container_path = volumes.value.container_path
+    }
+  }
+
   env = [for k, v in each.value.env : "${k}=${v}"]
 
   restart = "unless-stopped"
@@ -258,11 +266,11 @@ resource "libvirt_volume" "ubuntu_base" {
 }
 
 resource "libvirt_volume" "vm_disk" {
-  for_each      = { for k, v in local.vms : k => v if v.cloud_init }
-  name          = "${each.key}.qcow2"
-  pool          = "default"
-  capacity      = 21474836480
-  target        = { format = { type = "qcow2" } }
+  for_each = { for k, v in local.vms : k => v if v.cloud_init }
+  name     = "${each.key}.qcow2"
+  pool     = "default"
+  capacity = 21474836480
+  target   = { format = { type = "qcow2" } }
   backing_store = {
     path   = libvirt_volume.ubuntu_base[each.key].path
     format = { type = "qcow2" }
